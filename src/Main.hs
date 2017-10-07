@@ -8,31 +8,41 @@ import qualified Data.Configurator as C
 import qualified Data.ByteString.Char8 as B
 import Database.Persist.Postgresql
 
+import Text.Pretty.Simple (pPrint)
+
+
 import Blocksqld.Types
 import Blocksqld.Schema
+import Blocksqld.Commands
 
 main :: IO ()
 main = do
-  cfg <- parseConfig "config.txt"
-  pgpool <- runNoLoggingT $ createPostgresqlPool (getConnString cfg) 10
+  (dbcfg, coincfg) <- parseConfig "config.txt"
+  pPrint dbcfg
+  pPrint coincfg
+  pgpool <- runNoLoggingT $ createPostgresqlPool (getConnString dbcfg) 10
   runSqlPool (runMigration migrateAll) pgpool
   return ()
 
-parseConfig :: FilePath -> IO AppConfig
+parseConfig :: FilePath -> IO (DBConfig, CoinConf)
 parseConfig f = do
     cfg <- C.load [C.Required f]
-    host   <- C.require cfg "postgres.host"
-    port   <- C.require cfg "postgres.port"
-    dbname <- C.require cfg "postgres.db"
-    user   <- C.require cfg "postgres.user"
-    passwd <- C.require cfg "postgres.passwd"
-    return (AppConfig host port dbname user passwd)
 
-getConnString :: AppConfig -> ConnectionString
+    dbcfg   <- DBConfig <$> C.require cfg "postgres.host"
+                        <*> C.require cfg "postgres.port"
+                        <*> C.require cfg "postgres.db"
+                        <*> C.require cfg "postgres.user"
+                        <*> C.require cfg "postgres.passwd"
+
+    coincfg <- CoinConf <$> C.require cfg "coin.name"
+                        <*> C.require cfg "coin.rpcuser"
+                        <*> C.require cfg "coin.rpcpass"
+    return (dbcfg, coincfg)
+
+getConnString :: DBConfig -> ConnectionString
 getConnString p = B.pack $ concat [ "host=", (dbHost p)
                                   , " dbname=", (dbName p)
                                   , " user=", (dbUser p)
                                   , " password=", (dbPass p)
                                   , " port=", show (dbPort p)
                                   ]
-

@@ -4,12 +4,18 @@ module Blocksqld.Types where
 import Data.Aeson
 import Network.Socket
 
-data AppConfig = AppConfig
+data DBConfig = DBConfig
     { dbHost :: HostName
     , dbPort :: Int
     , dbName :: String
     , dbUser :: String
     , dbPass :: String
+    } deriving (Show)
+
+data CoinConf = CoinConf
+    { coinName :: String
+    , coinRpcUser :: String
+    , coinRpcPass :: String
     } deriving (Show)
 
 data RpcRequest = RpcRequest { rpcMethod :: Value
