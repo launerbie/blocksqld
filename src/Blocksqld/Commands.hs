@@ -26,10 +26,8 @@ contentType = ("content-type","text/plain")
 
 setRPCRequest :: Request -> RpcRequest -> Request
 setRPCRequest req r = req { method = "POST"
-                          , requestHeaders = [contentType]
                           , requestBody = RequestBodyLBS $ encode $ toJSON $ r}
 
 addHeader :: Request -> Header -> Request
 addHeader req h = req { requestHeaders = requestHeaders req ++ [h] }
-
 

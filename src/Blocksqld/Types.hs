@@ -14,6 +14,8 @@ data DBConfig = DBConfig
 
 data CoinConf = CoinConf
     { coinName :: String
+    , coinHost :: String
+    , coinPort :: Int
     , coinRpcUser :: String
     , coinRpcPass :: String
     } deriving (Show)

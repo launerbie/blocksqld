@@ -42,6 +42,10 @@ executable blocksqld
                      , unix-time
                      , word8
 
+  other-modules:     Blocksqld.Commands
+                     Blocksqld.Schema
+                     Blocksqld.Types
+
   default-language:    Haskell2010
 
 test-suite blocksqld-test
