@@ -21,8 +21,8 @@ import Blocksqld.Types
 import Blocksqld.Schema
 import Blocksqld.Commands
 
-type DBHandler = ReaderT DBConfig
-type CoinHandler = ReaderT CoinConf
+type DBHandler = ReaderT DBConfig IO
+type CoinHandler = ReaderT CoinConf IO
 
 main :: IO ()
 main = do
@@ -65,7 +65,7 @@ getAuthHeader user pass  =
       b   = enc (user++":"++pass)
   in ("Authorization", "Basic " `S8.append` b)
 
-rpc :: RpcRequest -> CoinHandler IO (Response BL.ByteString)
+rpc :: RpcRequest -> CoinHandler (Response BL.ByteString)
 rpc r = do
   cfg  <- ask
   host <- asks coinHost
@@ -77,5 +77,3 @@ rpc r = do
     initReq <- parseRequest $ "http://"++host++":"++(show port)
     manager <- newManager defaultManagerSettings
     httpLbs (addHeader (setRPCRequest initReq r) authheader) manager
-
-
