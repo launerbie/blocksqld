@@ -2,7 +2,7 @@
 module Main where
 
 import Control.Concurrent
-import Control.Exception (try)
+import Control.Exception
 import Control.Monad
 import Control.Monad.Logger
 import Control.Monad.Trans.Class
@@ -81,16 +81,25 @@ fromRpcToRequest rpc = do
   initReq <- parseRequest $ "http://"++host++":"++(show port)
   return $ createJsonRpc initReq rpc authheader
 
-runHTTPRequests :: [Request] -> IO [Response BL.ByteString]
+runHTTPRequests :: [Request]
+                -> IO [Either HttpException (Response BL.ByteString)]
 runHTTPRequests reqs = do
     mgr <- newManager defaultManagerSettings
-    mapM (flip httpLbs mgr) reqs
+    mapM (try . flip httpLbs mgr) reqs
 
 test :: IO ()
 test = do
-  (dbcfg, coincfg) <- parseConfig "config.txt"
-  rs <- runReaderT (mapM (fromRpcToRequest . getblockhash) [1..20]) coincfg
+  (dbcfg, coincfg) <- defaultBlocksqldConfig
+  rs <- runReaderT (mapM (fromRpcToRequest . getblockhash) [1..3]) coincfg
   resp <- runHTTPRequests rs
-  let resp2 = fmap responseBody resp
-  print resp2
+  --let resp2 = fmap f resp
+  print resp
+
+testRequests :: IO [Request]
+testRequests = do
+  (dbcfg, coincfg) <- defaultBlocksqldConfig
+  runReaderT (mapM (fromRpcToRequest . getblockhash) [1..3]) coincfg
+
+defaultBlocksqldConfig :: IO (DBConfig, CoinConf)
+defaultBlocksqldConfig = parseConfig "config.txt"
 
