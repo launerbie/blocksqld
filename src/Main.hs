@@ -1,9 +1,12 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Main where
 
+import Control.Concurrent
+import Control.Exception (try)
+import Control.Monad
 import Control.Monad.Logger
-import Control.Monad.Except
-import Control.Monad.Trans.Except
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
 import qualified Data.Configurator as C
 import qualified Data.ByteString as B
@@ -21,18 +24,21 @@ import Blocksqld.Types
 import Blocksqld.Schema
 import Blocksqld.Commands
 
-type DBHandler = ReaderT DBConfig IO
-type CoinHandler = ReaderT CoinConf IO
+type DBHandler = ReaderT DBConfig
+type CoinHandler = ReaderT CoinConf
 
 main :: IO ()
 main = do
-  (dbcfg, coincfg) <- parseConfig "config.txt"
-  pPrint dbcfg
-  pPrint coincfg
-  pgpool <- runNoLoggingT $ createPostgresqlPool (getConnString dbcfg) 10
-  runSqlPool (runMigration migrateAll) pgpool
+  --runReaderT startDB dbcfg
+  forever $ do threadDelay 2000000
+               test
 
-  return ()
+startDB :: ReaderT DBConfig IO ()
+startDB = do
+  dbcfg <- ask
+  let conn = getConnString dbcfg
+  lift $ do pgpool <- runNoLoggingT $ createPostgresqlPool conn 10
+            runSqlPool (runMigration migrateAll) pgpool
 
 parseConfig :: FilePath -> IO (DBConfig, CoinConf)
 parseConfig f = do
@@ -65,15 +71,26 @@ getAuthHeader user pass  =
       b   = enc (user++":"++pass)
   in ("Authorization", "Basic " `S8.append` b)
 
-rpc :: RpcRequest -> CoinHandler (Response BL.ByteString)
-rpc r = do
-  cfg  <- ask
+fromRpcToRequest ::  RpcRequest -> CoinHandler IO Request
+fromRpcToRequest rpc = do
   host <- asks coinHost
   port <- asks coinPort
   u    <- asks coinRpcUser
   p    <- asks coinRpcPass
   let authheader = getAuthHeader u p
-  liftIO $ do
-    initReq <- parseRequest $ "http://"++host++":"++(show port)
-    manager <- newManager defaultManagerSettings
-    httpLbs (addHeader (setRPCRequest initReq r) authheader) manager
+  initReq <- parseRequest $ "http://"++host++":"++(show port)
+  return $ createJsonRpc initReq rpc authheader
+
+runHTTPRequests :: [Request] -> IO [Response BL.ByteString]
+runHTTPRequests reqs = do
+    mgr <- newManager defaultManagerSettings
+    mapM (flip httpLbs mgr) reqs
+
+test :: IO ()
+test = do
+  (dbcfg, coincfg) <- parseConfig "config.txt"
+  rs <- runReaderT (mapM (fromRpcToRequest . getblockhash) [1..20]) coincfg
+  resp <- runHTTPRequests rs
+  let resp2 = fmap responseBody resp
+  print resp2
+

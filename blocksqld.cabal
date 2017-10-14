@@ -24,6 +24,8 @@ executable blocksqld
                      , bytestring
                      , configurator
                      , cryptohash
+                     , exceptions
+                     , either
                      , http-client
                      , http-types
                      , monad-logger

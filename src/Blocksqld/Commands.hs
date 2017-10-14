@@ -8,6 +8,8 @@ import Network.HTTP.Client
 
 import Blocksqld.Types
 
+type AuthHeader = Header
+
 getblockhash :: Int -> RpcRequest
 getblockhash index = RpcRequest m p i
                      where m = "getblockhash"
@@ -24,9 +26,15 @@ getblock h = RpcRequest m p i
 contentType :: Header
 contentType = ("content-type","text/plain")
 
-setRPCRequest :: Request -> RpcRequest -> Request
-setRPCRequest req r = req { method = "POST"
-                          , requestBody = RequestBodyLBS $ encode $ toJSON $ r}
+createJsonRpc :: Request
+              -> RpcRequest
+              -> AuthHeader
+              -> Request
+createJsonRpc req rpc auth = req
+  { method = "POST"
+  , requestHeaders = [contentType, auth]
+  , requestBody = RequestBodyLBS $ encode $ toJSON $ rpc
+  }
 
 addHeader :: Request -> Header -> Request
 addHeader req h = req { requestHeaders = requestHeaders req ++ [h] }
