@@ -75,36 +75,3 @@ instance FromJSON RpcResponse where
                                      <*> v .: "error"
                                      <*> v .: "id"
 
---data Block = Block { hash              :: String
---                  -- , confirmations     :: Int
---                   , size              :: Int
---                   , height            :: Int
---                   , versionBlock      :: Int
---                   , merkleroot        :: String
---                   , txs               :: [String]
---                   , time              :: Int
---                   , nonce             :: Int
---                   , bits              :: String
---                   , difficulty        :: Scientific
---                   , chainwork         :: String
---      --             , previousblockhash :: String
---      --             , nextblockhash     :: Maybe String
---                   } deriving (Show)
-
---instance FromJSON Block where
---    parseJSON (Object v) = Block <$> v .: "hash"
---    --                             <*> v .: "confirmations"
---                                 <*> v .: "size"
---                                 <*> v .: "height"
---                                 <*> v .: "version"
---                                 <*> v .: "merkleroot"
---                                 <*> v .: "tx"
---                                 <*> v .: "time"
---                                 <*> v .: "nonce"
---                                 <*> v .: "bits"
---                                 <*> v .: "difficulty"
---                                 <*> v .: "chainwork"
---     --                            <*> v .: "previousblockhash"
---     --                            <*> v .:? "nextblockhash"
---    parseJSON _ = mzero
---
