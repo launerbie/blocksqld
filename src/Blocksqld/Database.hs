@@ -10,6 +10,8 @@
 
 module Blocksqld.Database where
 
+import Data.Aeson
+import Control.Monad
 import Control.Monad.Logger
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
@@ -36,6 +38,24 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     chainwork T.Text
     deriving Show
 |]
+
+instance FromJSON Block where
+    parseJSON (Object v) = Block <$> v .: "hash"
+    --                             <*> v .: "confirmations"
+                                 <*> v .: "size"
+                                 <*> v .: "height"
+                                 <*> v .: "version"
+                                 <*> v .: "merkleroot"
+    --                             <*> v .: "tx"
+                                 <*> v .: "time"
+                                 <*> v .: "nonce"
+                                 <*> v .: "bits"
+                                 <*> v .: "difficulty"
+                                 <*> v .: "chainwork"
+     --                            <*> v .: "previousblockhash"
+     --                            <*> v .:? "nextblockhash"
+    parseJSON _ = mzero
+
 
 
 startDB :: ReaderT DBConfig IO ()

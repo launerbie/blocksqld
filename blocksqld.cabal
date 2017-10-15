@@ -38,6 +38,7 @@ executable blocksqld
                      , pretty-simple
                      , random
                      , resource-pool
+                     , scientific
                      , transformers
                      , text
                      , time

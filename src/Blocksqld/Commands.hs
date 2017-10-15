@@ -24,6 +24,9 @@ getblock h = RpcRequest m p i
                    p = [toJSON h]
                    i = "hash"
 
+getblockcount :: RpcRequest
+getblockcount = RpcRequest "getblockcount" [] ""
+
 ------- HTTP -----------------
 contentType :: Header
 contentType = ("content-type","text/plain")
@@ -48,8 +51,8 @@ getAuthHeader user pass  =
       b   = enc (user++":"++pass)
   in ("Authorization", "Basic " `S8.append` b)
 
-fromRpcToRequest ::  RpcRequest -> CoinHandler IO Request
-fromRpcToRequest rpc = do
+jsonRpcToHTTPRequest ::  RpcRequest -> CoinHandler IO Request
+jsonRpcToHTTPRequest rpc = do
   host <- asks coinHost
   port <- asks coinPort
   u    <- asks coinRpcUser

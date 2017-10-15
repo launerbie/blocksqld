@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
+import Data.Aeson
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 
@@ -27,26 +28,44 @@ main = do
   forever $ do threadDelay 2000000
                test
 
+runHTTPRequest :: Request
+               -> Manager
+               -> IO (Either HttpException (Response BL.ByteString))
+runHTTPRequest req mgr = (try . flip httpLbs mgr) req
 
 runHTTPRequests :: [Request]
                 -> IO [Either HttpException (Response BL.ByteString)]
 runHTTPRequests reqs = do
     mgr <- newManager defaultManagerSettings
-    mapM (try . flip httpLbs mgr) reqs
+    mapM (flip runHTTPRequest mgr) reqs
+
+decodeJsonRpcResponse :: Either HttpException (Response BL.ByteString)
+                      -> Maybe RpcResponse
+decodeJsonRpcResponse e = case e of
+                              Left _     -> Nothing
+                              Right resp -> decode (responseBody resp)
+
+decodeResponseWith :: FromJSON a
+                   => BL.ByteString
+                   -> (BL.ByteString -> Maybe a)
+                   -> Maybe a
+decodeResponseWith json f = f json
 
 test :: IO ()
 test = do
   (dbcfg, coincfg) <- defaultBlocksqldConfig
-  rs <- runReaderT (mapM (fromRpcToRequest . getblockhash) [1..3]) coincfg
+  rs <- runReaderT (mapM (jsonRpcToHTTPRequest . getblockhash) [1..3]) coincfg
   resp <- runHTTPRequests rs
   --let resp2 = fmap f resp
-  print resp
+  pPrint resp
 
 testRequests :: IO [Request]
 testRequests = do
   (dbcfg, coincfg) <- defaultBlocksqldConfig
-  runReaderT (mapM (fromRpcToRequest . getblockhash) [1..3]) coincfg
+  runReaderT (mapM (jsonRpcToHTTPRequest . getblockhash) [1..3]) coincfg
 
 defaultBlocksqldConfig :: IO (DBConfig, CoinConf)
 defaultBlocksqldConfig = parseConfig "config.txt"
+
+
 
