@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Blocksqld.Commands where
 
+import Control.Monad.Trans.Reader
 import Data.Aeson
+import qualified Data.ByteString.Char8 as S8
+import qualified Data.ByteString.Base64 as B64
 import Network.HTTP.Types.Header (Header)
 import Network.HTTP.Client
-
 
 import Blocksqld.Types
 
@@ -38,4 +40,24 @@ createJsonRpc req rpc auth = req
 
 addHeader :: Request -> Header -> Request
 addHeader req h = req { requestHeaders = requestHeaders req ++ [h] }
+
+-- use applyBasicAuth instead
+getAuthHeader :: String -> String -> Header
+getAuthHeader user pass  =
+  let enc = (B64.encode . S8.pack)
+      b   = enc (user++":"++pass)
+  in ("Authorization", "Basic " `S8.append` b)
+
+fromRpcToRequest ::  RpcRequest -> CoinHandler IO Request
+fromRpcToRequest rpc = do
+  host <- asks coinHost
+  port <- asks coinPort
+  u    <- asks coinRpcUser
+  p    <- asks coinRpcPass
+  let authheader = getAuthHeader u p
+  initReq <- parseRequest $ "http://"++host++":"++(show port)
+  return $ createJsonRpc initReq rpc authheader
+
+
+
 
