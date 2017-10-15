@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Blocksqld.Commands where
 
+import Control.Monad
 import Control.Monad.Trans.Reader
 import Data.Aeson
 import qualified Data.ByteString.Char8 as S8
@@ -9,6 +10,7 @@ import Network.HTTP.Types.Header (Header)
 import Network.HTTP.Client
 
 import Blocksqld.Types
+import Blocksqld.Database
 
 type AuthHeader = Header
 
@@ -26,6 +28,16 @@ getblock h = RpcRequest m p i
 
 getblockcount :: RpcRequest
 getblockcount = RpcRequest "getblockcount" [] ""
+
+getblockhash' :: Int -> CommandMonad String
+getblockhash' = undefined
+
+getblock' :: String -> CommandMonad Block
+getblock' = undefined
+
+getblockWithHeight :: Int -> CommandMonad Block
+getblockWithHeight = getblockhash' >=> getblock'
+
 
 ------- HTTP -----------------
 contentType :: Header

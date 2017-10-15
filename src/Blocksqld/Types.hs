@@ -3,6 +3,7 @@ module Blocksqld.Types where
 
 import Control.Monad
 import Control.Monad.Trans.Reader
+import Control.Monad.Trans.Maybe
 
 import qualified Data.Configurator as C
 import qualified Data.ByteString.Char8 as S8
@@ -14,7 +15,7 @@ import Network.Socket
 
 type DBHandler = ReaderT DBConfig
 type CoinHandler = ReaderT CoinConf
-
+type CommandMonad = ReaderT CoinConf (MaybeT IO)
 
 data DBConfig = DBConfig
     { dbHost :: HostName

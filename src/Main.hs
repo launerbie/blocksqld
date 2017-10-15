@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
+import Control.Monad.Trans.Maybe
 import Data.Aeson
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -39,11 +40,11 @@ runHTTPRequests reqs = do
     mgr <- newManager defaultManagerSettings
     mapM (flip runHTTPRequest mgr) reqs
 
-decodeJsonRpcResponse :: Either HttpException (Response BL.ByteString)
-                      -> Maybe RpcResponse
-decodeJsonRpcResponse e = case e of
-                              Left _     -> Nothing
-                              Right resp -> decode (responseBody resp)
+toRpcResponse :: Either HttpException (Response BL.ByteString)
+              -> Maybe RpcResponse
+toRpcResponse e = case e of
+                     Left _     -> Nothing
+                     Right resp -> decode (responseBody resp)
 
 decodeResponseWith :: FromJSON a
                    => BL.ByteString
