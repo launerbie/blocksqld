@@ -9,6 +9,7 @@ import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Maybe
 import Data.Aeson
+import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 

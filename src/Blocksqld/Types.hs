@@ -15,7 +15,7 @@ import Network.Socket
 
 type DBHandler = ReaderT DBConfig
 type CoinHandler = ReaderT CoinConf
-type CommandMonad = ReaderT CoinConf (MaybeT IO)
+type CommandM = MaybeT (ReaderT CoinConf IO)
 
 data DBConfig = DBConfig
     { dbHost :: HostName

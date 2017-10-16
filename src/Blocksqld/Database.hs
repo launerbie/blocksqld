@@ -37,6 +37,12 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     difficulty Double
     chainwork T.Text
     deriving Show
+  Tx
+    txid T.Text
+    version T.Text
+    locktime Int
+    vin      T.Text
+    vout     T.Text
 |]
 
 instance FromJSON Block where

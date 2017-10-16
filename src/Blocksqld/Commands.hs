@@ -2,9 +2,13 @@
 module Blocksqld.Commands where
 
 import Control.Monad
+import Control.Monad.Catch
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 import Data.Aeson
 import qualified Data.ByteString.Char8 as S8
+import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Lazy as BL
 
@@ -28,27 +32,40 @@ getblock h = RpcRequest m p i
                    p = [toJSON h]
                    i = "hash"
 
-getblockcount :: RpcRequest
-getblockcount = RpcRequest "getblockcount" [] ""
+getblockcount :: CommandM Int
+getblockcount = undefined
+  --let req = RpcRequest "getblockcount" [] ""
 
-getblockhash' :: Int -> CommandMonad String
+getblockhash' :: Int -> CommandM String
 getblockhash' i = do
   let req = RpcRequest "getblockhash" [toJSON i] ""
-  result <- sendRpcRequest req
-  let mHash = decode result :: Maybe String
-  case mHash of
-    Just h -> return h
-    Nothing -> return ""
+  C.unpack <$> (sendRpcRequest req)
 
-getblock' :: String -> CommandMonad Block
+getblock' :: String -> CommandM Block
 getblock' = undefined
+  --let req = RpcRequest "getblockhash" [toJSON i] ""
 
-getblockWithHeight :: Int -> CommandMonad Block
+getblockWithHeight :: Int -> CommandM Block
 getblockWithHeight = getblockhash' >=> getblock'
 
-sendRpcRequest :: RpcRequest -> CommandMonad BL.ByteString
-sendRpcRequest = undefined
+getTXsFromBlockWithHeight :: Int -> CommandM [Tx]
+getTXsFromBlockWithHeight = getblockhash' >=> getblock' >=> getTXsFromBlock
 
+getTXsFromBlock :: Block -> CommandM [Tx]
+getTXsFromBlock = undefined
+
+sendRpcRequest :: RpcRequest -> CommandM BL.ByteString
+sendRpcRequest rpc = do
+  req  <- lift $ jsonRpcToHTTPRequest rpc
+  resp <- sendHttpRequest req
+  return (responseBody resp)
+
+sendHttpRequest :: Request -> CommandM (Response BL.ByteString)
+sendHttpRequest req = do
+  e <- liftIO $ do
+     mgr <- newManager defaultManagerSettings
+     httpLbs req mgr
+  return e
 
 ------- HTTP -----------------
 contentType :: Header
@@ -74,7 +91,7 @@ getAuthHeader user pass  =
       b   = enc (user++":"++pass)
   in ("Authorization", "Basic " `S8.append` b)
 
-jsonRpcToHTTPRequest ::  RpcRequest -> CoinHandler IO Request
+jsonRpcToHTTPRequest :: MonadThrow m => RpcRequest -> CoinHandler m Request
 jsonRpcToHTTPRequest rpc = do
   host <- asks coinHost
   port <- asks coinPort
@@ -83,7 +100,4 @@ jsonRpcToHTTPRequest rpc = do
   let authheader = getAuthHeader u p
   initReq <- parseRequest $ "http://"++host++":"++(show port)
   return $ createJsonRpc initReq rpc authheader
-
-
-
 
