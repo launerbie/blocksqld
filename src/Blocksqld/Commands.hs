@@ -6,6 +6,8 @@ import Control.Monad.Trans.Reader
 import Data.Aeson
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Base64 as B64
+import qualified Data.ByteString.Lazy as BL
+
 import Network.HTTP.Types.Header (Header)
 import Network.HTTP.Client
 
@@ -30,13 +32,22 @@ getblockcount :: RpcRequest
 getblockcount = RpcRequest "getblockcount" [] ""
 
 getblockhash' :: Int -> CommandMonad String
-getblockhash' = undefined
+getblockhash' i = do
+  let req = RpcRequest "getblockhash" [toJSON i] ""
+  result <- sendRpcRequest req
+  let mHash = decode result :: Maybe String
+  case mHash of
+    Just h -> return h
+    Nothing -> return ""
 
 getblock' :: String -> CommandMonad Block
 getblock' = undefined
 
 getblockWithHeight :: Int -> CommandMonad Block
 getblockWithHeight = getblockhash' >=> getblock'
+
+sendRpcRequest :: RpcRequest -> CommandMonad BL.ByteString
+sendRpcRequest = undefined
 
 
 ------- HTTP -----------------
