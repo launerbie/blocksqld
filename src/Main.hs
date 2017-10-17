@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Main where
 
+import Control.Error.Util
 import Control.Concurrent
 import Control.Exception
 import Control.Monad

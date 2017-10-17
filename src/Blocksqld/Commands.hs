@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Blocksqld.Commands where
 
+import Control.Error
 import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
+import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Reader
 import Data.Aeson
 import qualified Data.ByteString.Char8 as S8
@@ -33,18 +35,27 @@ getblock h = RpcRequest m p i
                    i = "hash"
 
 getblockcount :: CommandM Int
-getblockcount = undefined
-  --let req = RpcRequest "getblockcount" [] ""
+getblockcount = do
+  let req = RpcRequest "getblockcount" [] ""
+  rpcresp <- (decodeBodyToRpc <=< sendRpcRequest) req
+  return $ read . show $ rpcResult rpcresp
 
 getblockhash' :: Int -> CommandM String
 getblockhash' i = do
   let req = RpcRequest "getblockhash" [toJSON i] ""
-  C.unpack <$> (sendRpcRequest req)
+  rpcresp <- (sendRpcRequest >=> decodeBodyToRpc) req
+  return $ (show . rpcResult) rpcresp
 
 getblock' :: String -> CommandM Block
-getblock' = undefined
-  --let req = RpcRequest "getblockhash" [toJSON i] ""
+getblock' hash = undefined
+  --let req = RpcRequest "getblock" [toJSON hash] ""
+  --rpcresp  <- (sendRpcRequest >=> decodeBodyToRpc) req
+  --let r = rpcResult rpcresp
+  --hoistMaybe (decode r)
 
+decodeBodyToRpc :: BL.ByteString -> CommandM RpcResponse
+decodeBodyToRpc = hoistMaybe . decode 
+  
 getblockWithHeight :: Int -> CommandM Block
 getblockWithHeight = getblockhash' >=> getblock'
 
@@ -100,4 +111,3 @@ jsonRpcToHTTPRequest rpc = do
   let authheader = getAuthHeader u p
   initReq <- parseRequest $ "http://"++host++":"++(show port)
   return $ createJsonRpc initReq rpc authheader
-
