@@ -1,0 +1,17 @@
+postgres
+{
+  host = "localhost"
+  port = 5432
+  db = "blocksqld"
+  user = "lkasdlkfjasdlasdflkj"
+  passwd = "iuwehroiae5ye4w5e4y5"
+}
+
+coin {
+  host = "127.0.0.1"
+  port = 9998
+  name = "dash"
+  rpcuser = "hailsurhgase"
+  rpcpass = "982347230497"
+}
+
