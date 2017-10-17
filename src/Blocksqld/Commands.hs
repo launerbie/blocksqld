@@ -9,6 +9,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Reader
 import Data.Aeson
+import Data.Aeson.Types
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.ByteString.Base64 as B64
@@ -21,49 +22,44 @@ import Blocksqld.Types
 import Blocksqld.Database
 
 type AuthHeader = Header
-
-getblockhash :: Int -> RpcRequest
-getblockhash index = RpcRequest m p i
-                     where m = "getblockhash"
-                           p = [toJSON index]
-                           i = "test"
-
-getblock :: String -> RpcRequest
-getblock h = RpcRequest m p i
-             where m = "getblock"
-                   p = [toJSON h]
-                   i = "hash"
+runCommand = runReaderT . runMaybeT
 
 getblockcount :: CommandM Int
 getblockcount = do
   let req = RpcRequest "getblockcount" [] ""
-  rpcresp <- (decodeBodyToRpc <=< sendRpcRequest) req
-  return $ read . show $ rpcResult rpcresp
+  rpcresp <- responseFromRpcRequest req
+  let mInt = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mInt
 
-getblockhash' :: Int -> CommandM String
-getblockhash' i = do
+getblockhash :: Int -> CommandM String
+getblockhash i = do
   let req = RpcRequest "getblockhash" [toJSON i] ""
-  rpcresp <- (sendRpcRequest >=> decodeBodyToRpc) req
-  return $ (show . rpcResult) rpcresp
+  rpcresp <- responseFromRpcRequest req
+  let mString = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mString
 
-getblock' :: String -> CommandM Block
-getblock' hash = undefined
-  --let req = RpcRequest "getblock" [toJSON hash] ""
-  --rpcresp  <- (sendRpcRequest >=> decodeBodyToRpc) req
-  --let r = rpcResult rpcresp
-  --hoistMaybe (decode r)
+getblock :: String -> CommandM Block
+getblock hash = do
+  let req = RpcRequest "getblock" [toJSON hash] ""
+  rpcresp  <- responseFromRpcRequest req
+  let mString = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mString
 
-decodeBodyToRpc :: BL.ByteString -> CommandM RpcResponse
-decodeBodyToRpc = hoistMaybe . decode 
-  
 getblockWithHeight :: Int -> CommandM Block
-getblockWithHeight = getblockhash' >=> getblock'
+getblockWithHeight = getblockhash >=> getblock
 
 getTXsFromBlockWithHeight :: Int -> CommandM [Tx]
-getTXsFromBlockWithHeight = getblockhash' >=> getblock' >=> getTXsFromBlock
+getTXsFromBlockWithHeight = getblockhash >=> getblock >=> getTXsFromBlock
 
 getTXsFromBlock :: Block -> CommandM [Tx]
 getTXsFromBlock = undefined
+
+------- JSON-RPC/HTTP -----------------
+decodeHttpBodyToRpc :: BL.ByteString -> CommandM RpcResponse
+decodeHttpBodyToRpc = hoistMaybe . decode
+
+responseFromRpcRequest :: RpcRequest -> CommandM RpcResponse
+responseFromRpcRequest = (sendRpcRequest >=> decodeHttpBodyToRpc)
 
 sendRpcRequest :: RpcRequest -> CommandM BL.ByteString
 sendRpcRequest rpc = do
@@ -78,7 +74,6 @@ sendHttpRequest req = do
      httpLbs req mgr
   return e
 
-------- HTTP -----------------
 contentType :: Header
 contentType = ("content-type","text/plain")
 
