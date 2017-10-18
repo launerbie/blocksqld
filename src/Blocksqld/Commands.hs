@@ -22,7 +22,19 @@ import Blocksqld.Types
 import Blocksqld.Database
 
 type AuthHeader = Header
+type TxHash = String
+type BlockHash = String
+type BlockHeader = String
+type RawTx = String
+
 runCommand = runReaderT . runMaybeT
+
+getbestblockhash :: CommandM BlockHash
+getbestblockhash = do
+  let req = RpcRequest "getbestblockhash" [] ""
+  rpcresp <- responseFromRpcRequest req
+  let mString = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mString
 
 getblockcount :: CommandM Int
 getblockcount = do
@@ -37,6 +49,9 @@ getblockhash i = do
   rpcresp <- responseFromRpcRequest req
   let mString = parseMaybe parseJSON (rpcResult rpcresp)
   hoistMaybe mString
+
+getblockheader :: String -> CommandM BlockHeader
+getblockheader = undefined
 
 getblock :: String -> CommandM Block
 getblock hash = do
@@ -53,6 +68,12 @@ getTXsFromBlockWithHeight = getblockhash >=> getblock >=> getTXsFromBlock
 
 getTXsFromBlock :: Block -> CommandM [Tx]
 getTXsFromBlock = undefined
+
+decoderawtransansaction :: String -> CommandM Tx
+decoderawtransansaction = undefined
+
+getrawtransaction :: String -> CommandM RawTx
+getrawtransaction = undefined
 
 ------- JSON-RPC/HTTP -----------------
 decodeHttpBodyToRpc :: BL.ByteString -> CommandM RpcResponse

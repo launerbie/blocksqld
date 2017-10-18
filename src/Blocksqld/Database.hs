@@ -26,20 +26,20 @@ import Blocksqld.Types
 ----------------------- Database Schema ---------------------------------
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
   Block
-    hash T.Text
-    size Int
-    height Int
-    version Int
+    hash       T.Text
+    size       Int
+    height     Int
+    version    Int
     merkleroot T.Text
-    time Int
-    nonce Int
-    bits T.Text
+    time       Int
+    nonce      Int
+    bits       T.Text
     difficulty Double
-    chainwork T.Text
+    chainwork  T.Text
     deriving Show
   Tx
-    txid T.Text
-    version T.Text
+    txid     T.Text
+    version  T.Text
     locktime Int
     vin      T.Text
     vout     T.Text
