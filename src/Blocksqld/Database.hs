@@ -43,6 +43,12 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     locktime Int
     vin      T.Text
     vout     T.Text
+    deriving Show
+  BlockTest
+    hash       T.Text
+    size       Int
+    txs        [String]
+    deriving Show
 |]
 
 instance FromJSON Block where
@@ -61,8 +67,6 @@ instance FromJSON Block where
      --                            <*> v .: "previousblockhash"
      --                            <*> v .:? "nextblockhash"
     parseJSON _ = mzero
-
-
 
 startDB :: ReaderT DBConfig IO ()
 startDB = do
