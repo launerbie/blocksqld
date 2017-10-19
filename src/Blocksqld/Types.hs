@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Blocksqld.Types where
 
+
 import Control.Monad
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Maybe
@@ -48,14 +49,6 @@ parseConfig f = do
                         <*> C.require cfg "coin.rpcuser"
                         <*> C.require cfg "coin.rpcpass"
     return (dbcfg, coincfg)
-
-getConnString :: DBConfig -> ConnectionString
-getConnString p = S8.pack $ concat [ "host=", (dbHost p)
-                                  , " dbname=", (dbName p)
-                                  , " user=", (dbUser p)
-                                  , " password=", (dbPass p)
-                                  , " port=", show (dbPort p)
-                                  ]
 
 data RpcRequest = RpcRequest { rpcMethod :: Value
                              , rpcParams :: [Value]

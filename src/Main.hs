@@ -16,6 +16,7 @@ import Data.Aeson.Types
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
+import Data.Pool
 
 import Database.Persist.Sql
 
@@ -32,13 +33,26 @@ import Blocksqld.Commands
 main :: IO ()
 main = do
   (dbcfg, coincfg) <- defaultBlocksqldConfig
-  runReaderT startDB dbcfg
-  forM_ [1..] $ \i -> do
-      threadDelay 2000000
-      pPrint =<< runCommand (getblockWithHeight i) coincfg
+  pool <- runReaderT createPoolandMigrate dbcfg
+  syncDB pool coincfg
 
 defaultBlocksqldConfig :: IO (DBConfig, CoinConf)
 defaultBlocksqldConfig = parseConfig "config.txt"
 
+syncDB :: Pool SqlBackend -> CoinConf -> IO ()
+syncDB pool c = do
+  mBlocks <- runCommand (mapM getblockWithHeight [9000..10000]) c
+  case mBlocks of
+    Nothing -> print "No blocks"
+    Just blocks -> do
+       forM_ blocks $ \b -> do
+         print "Inserted block:"
+         pPrint b
+         insertBlock pool b
 
-
+test :: IO ()
+test = do
+  (dbcfg, coincfg) <- defaultBlocksqldConfig
+  forM_ [1..] $ \i -> do
+      threadDelay 2000000
+      pPrint =<< runCommand (getblockWithHeight i) coincfg

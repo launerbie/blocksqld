@@ -10,7 +10,10 @@
 
 module Blocksqld.Database where
 
+import Data.Pool
 import Data.Aeson
+import Data.Monoid
+import Data.ByteString.Char8 as S8 hiding (concat)
 import Control.Monad
 import Control.Monad.Logger
 import Control.Monad.Trans.Class
@@ -80,10 +83,27 @@ instance FromJSON Tx where
                               <*> v .: "vout"
     parseJSON _ = mzero
 
-startDB :: ReaderT DBConfig IO ()
-startDB = do
-  dbcfg <- ask
-  let conn = getConnString dbcfg
-  lift $ do pgpool <- runNoLoggingT $ createPostgresqlPool conn 10
+createPoolandMigrate :: ReaderT DBConfig IO (Pool SqlBackend)
+createPoolandMigrate = do
+  c <- connString
+  lift $ do pgpool <- runNoLoggingT $ createPostgresqlPool c 10
             runSqlPool (runMigration migrateAll) pgpool
+            return pgpool
 
+insertBlock :: Pool SqlBackend -> Block -> IO (Key Block)
+insertBlock p b = runSqlPersistMPool (insert b) p
+
+connString :: ReaderT DBConfig IO (S8.ByteString)
+connString = do
+  h <- asks dbHost
+  n <- asks dbName
+  u <- asks dbUser
+  p <- asks dbPass
+  port <- asks dbPort
+  let bs = S8.pack $ concat [ "host=", h
+                            , " dbname=", n
+                            , " user=",  u
+                            , " password=" , p
+                            , " port=", show port
+                            ]
+  return bs
