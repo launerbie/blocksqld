@@ -31,15 +31,18 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     height     Int
     version    Int
     merkleroot T.Text
+    tx         [String]
     time       Int
     nonce      Int
     bits       T.Text
     difficulty Double
     chainwork  T.Text
+    --previousblockhash T.Text Maybe
     deriving Show
   Tx
     txid     T.Text
-    version  T.Text
+    size     Int
+    version  Int
     locktime Int
     vin      T.Text
     vout     T.Text
@@ -58,7 +61,7 @@ instance FromJSON Block where
                                  <*> v .: "height"
                                  <*> v .: "version"
                                  <*> v .: "merkleroot"
-    --                             <*> v .: "tx"
+                                 <*> v .: "tx"
                                  <*> v .: "time"
                                  <*> v .: "nonce"
                                  <*> v .: "bits"
@@ -66,6 +69,15 @@ instance FromJSON Block where
                                  <*> v .: "chainwork"
      --                            <*> v .: "previousblockhash"
      --                            <*> v .:? "nextblockhash"
+    parseJSON _ = mzero
+
+instance FromJSON Tx where
+    parseJSON (Object v) = Tx <$> v .: "txid"
+                              <*> v .: "size"
+                              <*> v .: "version"
+                              <*> v .: "locktime"
+                              <*> v .: "vin"
+                              <*> v .: "vout"
     parseJSON _ = mzero
 
 startDB :: ReaderT DBConfig IO ()

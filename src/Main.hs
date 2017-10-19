@@ -9,12 +9,15 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Maybe
+
 import Data.Aeson
 import Data.Aeson.Parser
 import Data.Aeson.Types
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
+
+import Database.Persist.Sql
 
 import Text.Pretty.Simple (pPrint)
 
@@ -30,13 +33,9 @@ main :: IO ()
 main = do
   (dbcfg, coincfg) <- defaultBlocksqldConfig
   runReaderT startDB dbcfg
-  forever $ do threadDelay 2000000
-               test coincfg
-
-test :: CoinConf ->IO ()
-test cfg = do
-  mBlocks <- runCommand (mapM getblockWithHeight [1..5]) cfg
-  pPrint mBlocks
+  forM_ [1..] $ \i -> do
+      threadDelay 2000000
+      pPrint =<< runCommand (getblockWithHeight i) coincfg
 
 defaultBlocksqldConfig :: IO (DBConfig, CoinConf)
 defaultBlocksqldConfig = parseConfig "config.txt"

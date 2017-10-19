@@ -21,11 +21,11 @@ import Network.HTTP.Client
 import Blocksqld.Types
 import Blocksqld.Database
 
-type AuthHeader = Header
-type TxHash = String
-type BlockHash = String
-type BlockHeader = String
-type RawTx = String
+type AuthHeader  = Header
+type TxHash      = String
+type BlockHash   = String
+type RawTx       = String
+type Blockheader = String
 
 runCommand = runReaderT . runMaybeT
 
@@ -50,30 +50,46 @@ getblockhash i = do
   let mString = parseMaybe parseJSON (rpcResult rpcresp)
   hoistMaybe mString
 
-getblockheader :: String -> CommandM BlockHeader
-getblockheader = undefined
+getblockheader :: String -> CommandM Blockheader
+getblockheader hash = do
+  let req = RpcRequest "getblockheader" [toJSON hash] ""
+  rpcresp  <- responseFromRpcRequest req
+  let mBh = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mBh
 
 getblock :: String -> CommandM Block
 getblock hash = do
   let req = RpcRequest "getblock" [toJSON hash] ""
   rpcresp  <- responseFromRpcRequest req
-  let mString = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mString
+  let mBlock = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mBlock
 
 getblockWithHeight :: Int -> CommandM Block
 getblockWithHeight = getblockhash >=> getblock
 
-getTXsFromBlockWithHeight :: Int -> CommandM [Tx]
-getTXsFromBlockWithHeight = getblockhash >=> getblock >=> getTXsFromBlock
+getTXidsFromBlockWithHeight :: Int -> CommandM [TxHash]
+getTXidsFromBlockWithHeight = getblockhash >=> getblock >=> getTXidsFromBlock
 
-getTXsFromBlock :: Block -> CommandM [Tx]
-getTXsFromBlock = undefined
+getTXidsFromBlock :: Block -> CommandM [TxHash]
+getTXidsFromBlock b = do
+  return (blockTx b)
 
-decoderawtransansaction :: String -> CommandM Tx
-decoderawtransansaction = undefined
+getrawtransaction :: TxHash -> CommandM RawTx
+getrawtransaction txid = do
+  let req = RpcRequest "getrawtransaction" [toJSON txid] ""
+  rpcresp  <- responseFromRpcRequest req
+  let mRawTx = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mRawTx
 
-getrawtransaction :: String -> CommandM RawTx
-getrawtransaction = undefined
+decoderawtransansaction :: RawTx -> CommandM Tx
+decoderawtransansaction rawtx = do
+  let req = RpcRequest "decoderawtransansaction" [toJSON rawtx] ""
+  rpcresp  <- responseFromRpcRequest req
+  let mTx = parseMaybe parseJSON (rpcResult rpcresp)
+  hoistMaybe mTx
+
+decoderaws :: [TxHash] -> CommandM [Tx]
+decoderaws txs = mapM (getrawtransaction >=> decoderawtransansaction) txs
 
 ------- JSON-RPC/HTTP -----------------
 decodeHttpBodyToRpc :: BL.ByteString -> CommandM RpcResponse
