@@ -20,8 +20,9 @@ import Network.HTTP.Types
 
 type DBHandler = ReaderT DBConfig
 type CoinHandler = ReaderT CoinConf
-type CommandM = EitherT String (ReaderT CoinConf IO)
-type AppM = EitherT String (ReaderT AppConf IO)
+--type CommandM = EitherT String (ReaderT CoinConf IO)
+type AppReaderT = ReaderT AppConf IO
+type AppM = EitherT String (AppReaderT)
 
 data AppConf = AppConf
   { manager   :: Manager

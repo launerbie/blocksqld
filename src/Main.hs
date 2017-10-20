@@ -4,6 +4,7 @@ module Main where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
@@ -42,29 +43,25 @@ main = do
 
 startServer :: AppConf -> IO ()
 startServer conf = do
+  --runReaderT test conf
+  runApp testDB conf
   return ()
 
-syncDB :: Pool SqlBackend -> CoinConf -> IO ()
-syncDB pool c = do
-  eBlocks <- runCommand (mapM getblockWithHeight [1..500]) c
-  case eBlocks of
-    Left e -> do print "No blocks" >> print e
-    Right blocks -> do
-       forM_ blocks $ \b -> do
-         print "Inserted block:"
-         pPrint b
-         insertBlock pool b
+testDB :: AppM ()
+testDB = do
+  pool <- lift $ asks appPool
+  height <- getblockcount
+  let intss = chunks 10000 [600000..height]
 
-test :: IO ()
+  forM_ intss $ \ints -> do
+    blocks <- mapM getblockWithHeight ints
+    liftIO $ do insertBlocks pool blocks
+                print "Inserted block:"
+                pPrint $ head blocks
+
+test :: AppReaderT ()
 test = do
-  (dbcfg, coincfg) <- defaultBlocksqldConfig
-  forM_ [1..] $ \i -> do
-      threadDelay 2000000
-      pPrint =<< runCommand (getblockWithHeight i) coincfg
-
--- | there is also Data.List.Split.splitEvery
-chunks :: (Num a) => Int -> [a] -> [[a]]
-chunks s [] = []
-chunks s xs = foo : chunks s bar
-              where (foo, bar) = (splitAt s xs)
+  appconf <- ask
+  lift $ forM_ [1..] $ \i -> do
+      pPrint =<< runApp (getblockWithHeight i) appconf
 

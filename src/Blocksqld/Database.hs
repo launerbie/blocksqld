@@ -92,6 +92,9 @@ createPoolandMigrate = do
 insertBlock :: Pool SqlBackend -> Block -> IO (Key Block)
 insertBlock p b = runSqlPersistMPool (insert b) p
 
+insertBlocks :: Pool SqlBackend -> [Block] -> IO [Key Block]
+insertBlocks p bs = runSqlPersistMPool (mapM insert bs) p
+
 connString :: DBHandler IO (S8.ByteString)
 connString = do
   h <- asks dbHost
