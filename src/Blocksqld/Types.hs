@@ -1,21 +1,35 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Blocksqld.Types where
 
+
 import Control.Monad
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Either
 
 import qualified Data.Configurator as C
 import qualified Data.ByteString.Char8 as S8
 
 import Data.Aeson
 import Data.Scientific
+import Data.Pool
 import Database.Persist.Postgresql
 import Network.Socket
+import Network.HTTP.Client
+import Network.HTTP.Types
 
 type DBHandler = ReaderT DBConfig
 type CoinHandler = ReaderT CoinConf
-type CommandM = MaybeT (ReaderT CoinConf IO)
+--type CommandM = EitherT String (ReaderT CoinConf IO)
+type AppReaderT = ReaderT AppConf IO
+type AppM = EitherT String (AppReaderT)
+
+data AppConf = AppConf
+  { manager   :: Manager
+  , appPool   :: Pool SqlBackend
+  , dbConf    :: DBConfig
+  , coinConf  :: CoinConf
+  }
 
 data DBConfig = DBConfig
     { dbHost :: HostName
@@ -48,14 +62,6 @@ parseConfig f = do
                         <*> C.require cfg "coin.rpcuser"
                         <*> C.require cfg "coin.rpcpass"
     return (dbcfg, coincfg)
-
-getConnString :: DBConfig -> ConnectionString
-getConnString p = S8.pack $ concat [ "host=", (dbHost p)
-                                  , " dbname=", (dbName p)
-                                  , " user=", (dbUser p)
-                                  , " password=", (dbPass p)
-                                  , " port=", show (dbPort p)
-                                  ]
 
 data RpcRequest = RpcRequest { rpcMethod :: Value
                              , rpcParams :: [Value]
