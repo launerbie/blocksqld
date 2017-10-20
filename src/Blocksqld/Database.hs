@@ -12,7 +12,6 @@ module Blocksqld.Database where
 
 import Data.Pool
 import Data.Aeson
-import Data.Monoid
 import Data.ByteString.Char8 as S8 hiding (concat)
 import Control.Monad
 import Control.Monad.Logger
@@ -93,7 +92,7 @@ createPoolandMigrate = do
 insertBlock :: Pool SqlBackend -> Block -> IO (Key Block)
 insertBlock p b = runSqlPersistMPool (insert b) p
 
-connString :: ReaderT DBConfig IO (S8.ByteString)
+connString :: DBHandler IO (S8.ByteString)
 connString = do
   h <- asks dbHost
   n <- asks dbName

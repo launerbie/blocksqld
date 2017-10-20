@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module Blocksqld.Commands where
 
-import Control.Error
 import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Either
 import Control.Monad.Trans.Reader
 import Data.Aeson
 import Data.Aeson.Types
@@ -27,42 +27,43 @@ type BlockHash   = String
 type RawTx       = String
 type Blockheader = String
 
-runCommand = runReaderT . runMaybeT
+runCommand = runReaderT . runEitherT
+runApp = runReaderT . runEitherT
 
 getbestblockhash :: CommandM BlockHash
 getbestblockhash = do
   let req = RpcRequest "getbestblockhash" [] ""
   rpcresp <- responseFromRpcRequest req
-  let mString = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mString
+  let mString = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mString
 
 getblockcount :: CommandM Int
 getblockcount = do
   let req = RpcRequest "getblockcount" [] ""
   rpcresp <- responseFromRpcRequest req
-  let mInt = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mInt
+  let mInt = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mInt
 
 getblockhash :: Int -> CommandM String
 getblockhash i = do
   let req = RpcRequest "getblockhash" [toJSON i] ""
   rpcresp <- responseFromRpcRequest req
-  let mString = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mString
+  let mString = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mString
 
 getblockheader :: String -> CommandM Blockheader
 getblockheader hash = do
   let req = RpcRequest "getblockheader" [toJSON hash] ""
   rpcresp  <- responseFromRpcRequest req
-  let mBh = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mBh
+  let mBh = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mBh
 
 getblock :: String -> CommandM Block
 getblock hash = do
   let req = RpcRequest "getblock" [toJSON hash] ""
   rpcresp  <- responseFromRpcRequest req
-  let mBlock = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mBlock
+  let mBlock = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mBlock
 
 getblockWithHeight :: Int -> CommandM Block
 getblockWithHeight = getblockhash >=> getblock
@@ -71,29 +72,31 @@ getTXidsFromBlockWithHeight :: Int -> CommandM [TxHash]
 getTXidsFromBlockWithHeight = getblockhash >=> getblock >=> getTXidsFromBlock
 
 getTXidsFromBlock :: Block -> CommandM [TxHash]
-getTXidsFromBlock b = do
-  return (blockTx b)
+getTXidsFromBlock b = return (blockTx b)
 
 getrawtransaction :: TxHash -> CommandM RawTx
 getrawtransaction txid = do
   let req = RpcRequest "getrawtransaction" [toJSON txid] ""
   rpcresp  <- responseFromRpcRequest req
-  let mRawTx = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mRawTx
+  let mRawTx = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mRawTx
 
 decoderawtransansaction :: RawTx -> CommandM Tx
 decoderawtransansaction rawtx = do
   let req = RpcRequest "decoderawtransansaction" [toJSON rawtx] ""
   rpcresp  <- responseFromRpcRequest req
-  let mTx = parseMaybe parseJSON (rpcResult rpcresp)
-  hoistMaybe mTx
+  let mTx = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mTx
 
 decoderaws :: [TxHash] -> CommandM [Tx]
 decoderaws txs = mapM (getrawtransaction >=> decoderawtransansaction) txs
 
 ------- JSON-RPC/HTTP -----------------
 decodeHttpBodyToRpc :: BL.ByteString -> CommandM RpcResponse
-decodeHttpBodyToRpc = hoistMaybe . decode
+decodeHttpBodyToRpc s = do
+  case decode s of
+    Nothing -> hoistEither (Left "Error decoding Http response")
+    Just r -> hoistEither (Right r)
 
 responseFromRpcRequest :: RpcRequest -> CommandM RpcResponse
 responseFromRpcRequest = (sendRpcRequest >=> decodeHttpBodyToRpc)

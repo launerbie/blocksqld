@@ -5,18 +5,30 @@ module Blocksqld.Types where
 import Control.Monad
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Either
 
 import qualified Data.Configurator as C
 import qualified Data.ByteString.Char8 as S8
 
 import Data.Aeson
 import Data.Scientific
+import Data.Pool
 import Database.Persist.Postgresql
 import Network.Socket
+import Network.HTTP.Client
+import Network.HTTP.Types
 
 type DBHandler = ReaderT DBConfig
 type CoinHandler = ReaderT CoinConf
-type CommandM = MaybeT (ReaderT CoinConf IO)
+type CommandM = EitherT String (ReaderT CoinConf IO)
+type AppM = EitherT String (ReaderT AppConf IO)
+
+data AppConf = AppConf
+  { manager   :: Manager
+  , appPool   :: Pool SqlBackend
+  , dbConf    :: DBConfig
+  , coinConf  :: CoinConf
+  }
 
 data DBConfig = DBConfig
     { dbHost :: HostName
