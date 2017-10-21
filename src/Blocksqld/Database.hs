@@ -15,11 +15,13 @@ import Data.Aeson
 import Data.ByteString.Char8 as S8 hiding (concat)
 import Control.Monad
 import Control.Monad.Logger
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 import qualified Data.Text as T
 import Database.Persist.TH
 import Database.Persist.Postgresql
+import Database.Persist.Sql
 
 import Data.Time (UTCTime, getCurrentTime, addUTCTime)
 
@@ -82,19 +84,6 @@ instance FromJSON Tx where
                               <*> v .: "vout"
     parseJSON _ = mzero
 
-createPoolandMigrate :: ReaderT DBConfig IO (Pool SqlBackend)
-createPoolandMigrate = do
-  c <- connString
-  lift $ do pgpool <- runNoLoggingT $ createPostgresqlPool c 10
-            runSqlPool (runMigration migrateAll) pgpool
-            return pgpool
-
-insertBlock :: Pool SqlBackend -> Block -> IO (Key Block)
-insertBlock p b = runSqlPersistMPool (insert b) p
-
-insertBlocks :: Pool SqlBackend -> [Block] -> IO [Key Block]
-insertBlocks p bs = runSqlPersistMPool (mapM insert bs) p
-
 connString :: DBHandler IO (S8.ByteString)
 connString = do
   h <- asks dbHost
@@ -109,3 +98,25 @@ connString = do
                             , " port=", show port
                             ]
   return bs
+
+createPoolandMigrate :: ReaderT DBConfig IO (Pool SqlBackend)
+createPoolandMigrate = do
+  c <- connString
+  lift $ do pgpool <- runNoLoggingT $ createPostgresqlPool c 10
+            runSqlPool (runMigration migrateAll) pgpool
+            return pgpool
+
+insertBlock :: Pool SqlBackend -> Block -> IO (Key Block)
+insertBlock p b = runSqlPersistMPool (insert b) p
+
+insertBlocks :: Pool SqlBackend -> [Block] -> IO [Key Block]
+insertBlocks p bs = runSqlPersistMPool (mapM insert bs) p
+
+highestBlock :: SqlPersistM (Maybe (Entity Block))
+highestBlock = selectFirst [] [Desc BlockHeight]
+
+runDB :: SqlPersistM a -> AppM a
+runDB q = do
+  pool     <- lift $ asks appPool
+  liftIO $ runSqlPersistMPool q pool
+

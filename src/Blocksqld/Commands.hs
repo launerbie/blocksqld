@@ -92,10 +92,7 @@ decoderaws txs = mapM (getrawtransaction >=> decoderawtransansaction) txs
 
 ------- JSON-RPC/HTTP -----------------
 decodeHttpBodyToRpc :: BL.ByteString -> AppM RpcResponse
-decodeHttpBodyToRpc s = do
-  case decode s of
-    Nothing -> hoistEither (Left "Error decoding Http response")
-    Just r -> hoistEither (Right r)
+decodeHttpBodyToRpc s = hoistEither (eitherDecode s)
 
 responseFromRpcRequest :: RpcRequest -> AppM RpcResponse
 responseFromRpcRequest = (sendRpcRequest >=> decodeHttpBodyToRpc)

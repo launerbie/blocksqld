@@ -18,7 +18,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Pool
 
-
 import Database.Persist.Sql
 
 import Text.Pretty.Simple (pPrint)
@@ -44,20 +43,33 @@ main = do
 startServer :: AppConf -> IO ()
 startServer conf = do
   --runReaderT test conf
-  runApp testDB conf
+  forever $ do runApp syncDB conf
+               threadDelay 5000000
   return ()
 
-testDB :: AppM ()
-testDB = do
-  pool <- lift $ asks appPool
-  height <- getblockcount
-  let intss = chunks 10000 [600000..height]
+syncDB :: AppM ()
+syncDB = do
+  pool     <- lift $ asks appPool
+  height   <- getblockcount
+  mEntBlock <- runDB highestBlock
 
-  forM_ intss $ \ints -> do
-    blocks <- mapM getblockWithHeight ints
-    liftIO $ do insertBlocks pool blocks
-                print "Inserted block:"
-                pPrint $ head blocks
+  case mEntBlock of
+    Just entity -> do
+        let heightdb = blockHeight (entityVal entity)
+        if height > heightdb
+          then do let intss = chunks 10000 [(heightdb+1)..height]
+                  forM_ intss $ \ints -> do
+                     blocks <- mapM getblockWithHeight ints
+                     liftIO $ do insertBlocks pool blocks
+                                 print "Inserted block:"
+                                 pPrint $ head blocks
+          else liftIO $ print "Database synced!"
+    Nothing -> do let intss = chunks 10000 [0..height]
+                  forM_ intss $ \ints -> do
+                     blocks <- mapM getblockWithHeight ints
+                     liftIO $ do insertBlocks pool blocks
+                                 print "Inserted block:"
+                                 pPrint $ head blocks
 
 test :: AppReaderT ()
 test = do
