@@ -51,25 +51,15 @@ syncDB :: AppM ()
 syncDB = do
   pool     <- lift $ asks appPool
   height   <- getblockcount
-  mEntBlock <- runDB highestBlock
-
-  case mEntBlock of
-    Just entity -> do
-        let heightdb = blockHeight (entityVal entity)
-        if height > heightdb
-          then do let intss = chunks 10000 [(heightdb+1)..height]
-                  forM_ intss $ \ints -> do
-                     blocks <- mapM getblockWithHeight ints
-                     liftIO $ do insertBlocks pool blocks
-                                 print "Inserted block:"
-                                 pPrint $ head blocks
-          else liftIO $ print "Database synced!"
-    Nothing -> do let intss = chunks 10000 [0..height]
-                  forM_ intss $ \ints -> do
-                     blocks <- mapM getblockWithHeight ints
-                     liftIO $ do insertBlocks pool blocks
-                                 print "Inserted block:"
-                                 pPrint $ head blocks
+  heightDB <- highestBlock
+  if height > heightDB
+    then do let intss = chunks 10000 [(heightDB+1)..height]
+            forM_ intss $ \ints -> do
+               blocks <- mapM getblockWithHeight ints
+               liftIO $ do insertBlocks pool blocks
+                           print "Insert block:"
+                           pPrint $ last blocks
+    else liftIO $ print "Database synced!"
 
 test :: AppReaderT ()
 test = do

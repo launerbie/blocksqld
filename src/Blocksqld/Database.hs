@@ -112,8 +112,13 @@ insertBlock p b = runSqlPersistMPool (insert b) p
 insertBlocks :: Pool SqlBackend -> [Block] -> IO [Key Block]
 insertBlocks p bs = runSqlPersistMPool (mapM insert bs) p
 
-highestBlock :: SqlPersistM (Maybe (Entity Block))
-highestBlock = selectFirst [] [Desc BlockHeight]
+highestBlock :: AppM Int
+highestBlock = do
+  -- ents :: [Entity Block]
+  ents <- runDB $ selectList [] [Desc BlockHeight, LimitTo 1]
+  case ents of
+    []     -> return (-1)
+    (x:xs) -> return (blockHeight $ entityVal x)
 
 runDB :: SqlPersistM a -> AppM a
 runDB q = do
