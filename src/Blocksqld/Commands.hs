@@ -18,6 +18,8 @@ import qualified Data.ByteString.Lazy as BL
 import Network.HTTP.Types.Header (Header)
 import Network.HTTP.Client
 
+import Text.Pretty.Simple (pPrint)
+
 import Blocksqld.Types
 import Blocksqld.Database
 
@@ -25,52 +27,37 @@ type AuthHeader  = Header
 type TxHash      = String
 type BlockHash   = String
 type RawTx       = String
-type Blockheader = String
+type Hash        = String
 
 runApp = runReaderT . runEitherT
 
 getbestblockhash :: AppM BlockHash
-getbestblockhash = do
-  let req = RpcRequest "getbestblockhash" [] ""
-  rpcresp <- responseFromRpcRequest req
-  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+getbestblockhash = getDecodedResponse req
+  where req = RpcRequest "getbestblockhash" [] "1"
 
 getblockcount :: AppM Int
-getblockcount = do
-  let req = RpcRequest "getblockcount" [] ""
-  rpcresp <- responseFromRpcRequest req
-  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+getblockcount = getDecodedResponse req
+  where req = RpcRequest "getblockcount" [] "2"
 
 getblockhash :: Int -> AppM String
-getblockhash i = do
-  let req = RpcRequest "getblockhash" [toJSON i] ""
-  rpcresp <- responseFromRpcRequest req
-  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+getblockhash i = getDecodedResponse req
+  where req =  RpcRequest "getblockhash" [toJSON i] "3"
 
-getblockheader :: String -> AppM Blockheader
-getblockheader hash = do
-  let req = RpcRequest "getblockheader" [toJSON hash] ""
-  rpcresp  <- responseFromRpcRequest req
-  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+getblockheader :: Hash -> AppM BlockHeader
+getblockheader h = getDecodedResponse req
+  where req = RpcRequest "getblockheader" [toJSON h] "4"
 
-getblock :: String -> AppM Block
-getblock hash = do
-  let req = RpcRequest "getblock" [toJSON hash] ""
-  rpcresp  <- responseFromRpcRequest req
-  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+getblock :: BlockHash -> AppM Block
+getblock h = getDecodedResponse req
+  where req = RpcRequest "getblock" [toJSON h] "5"
 
 getrawtransaction :: TxHash -> AppM RawTx
-getrawtransaction txid = do
-  let req = RpcRequest "getrawtransaction" [toJSON txid] ""
-  rpcresp  <- responseFromRpcRequest req
-  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+getrawtransaction txid = getDecodedResponse req
+  where req = RpcRequest "getrawtransaction" [toJSON txid] "6"
 
-decoderawtransansaction :: RawTx -> AppM Tx
-decoderawtransansaction rawtx = do
-  let req = RpcRequest "decoderawtransansaction" [toJSON rawtx] ""
-  rpcresp  <- responseFromRpcRequest req
-  let mRawTx = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mRawTx
+decoderawtransaction :: RawTx -> AppM Tx
+decoderawtransaction rawtx = getDecodedResponse req
+  where req = RpcRequest "decoderawtransaction" [toJSON rawtx] "7"
 
 getblockWithHeight :: Int -> AppM Block
 getblockWithHeight = getblockhash >=> getblock
@@ -82,14 +69,27 @@ getTXidsFromBlock :: Block -> AppM [TxHash]
 getTXidsFromBlock b = return (blockTx b)
 
 decoderaws :: [TxHash] -> AppM [Tx]
-decoderaws txs = mapM (getrawtransaction >=> decoderawtransansaction) txs
+decoderaws txs = mapM (getrawtransaction >=> decoderawtransaction) txs
 
 ------- JSON-RPC/HTTP -----------------
+getDecodedResponse :: FromJSON a => RpcRequest -> AppM a
+getDecodedResponse = responseFromRpcRequest >=> parseRpcResult
+
 decodeHttpBodyToRpc :: BL.ByteString -> AppM RpcResponse
 decodeHttpBodyToRpc s = hoistEither (eitherDecode s)
 
 responseFromRpcRequest :: RpcRequest -> AppM RpcResponse
-responseFromRpcRequest = (sendRpcRequest >=> decodeHttpBodyToRpc)
+responseFromRpcRequest = sendRpcRequest >=> decodeHttpBodyToRpc
+
+parseRpcResult :: FromJSON a => RpcResponse -> AppM a
+parseRpcResult resp = do
+  let x = (parseEither parseJSON . rpcResult) resp
+  case x of
+    Left l -> do liftIO $ do print "parse error while parsing:"
+                             pPrint resp
+                             print l
+                 hoistEither x
+    Right r -> hoistEither x
 
 sendRpcRequest :: RpcRequest -> AppM BL.ByteString
 sendRpcRequest rpc = do
