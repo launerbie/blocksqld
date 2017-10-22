@@ -53,12 +53,13 @@ syncDB = do
   height   <- getblockcount
   heightDB <- highestBlock
   if height > heightDB
-    then do let intss = chunks 10000 [(heightDB+1)..height]
-            forM_ intss $ \ints -> do
-               blocks <- mapM getblockWithHeight ints
-               liftIO $ do insertBlocks pool blocks
-                           print "Insert block:"
-                           pPrint $ last blocks
+    then do
+        let intss = chunks 10000 [(heightDB+1)..height]
+        forM_ intss $ \ints -> do
+           blocks <- mapM getblockWithHeight ints
+           insertBlocks blocks
+           liftIO $ do print "Insert block:"
+                       pPrint $ last blocks
     else liftIO $ print "Database synced!"
 
 test :: AppReaderT ()

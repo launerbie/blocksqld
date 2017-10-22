@@ -99,18 +99,18 @@ connString = do
                             ]
   return bs
 
-createPoolandMigrate :: ReaderT DBConfig IO (Pool SqlBackend)
+createPoolandMigrate :: DBHandler IO (Pool SqlBackend)
 createPoolandMigrate = do
   c <- connString
   lift $ do pgpool <- runNoLoggingT $ createPostgresqlPool c 10
             runSqlPool (runMigration migrateAll) pgpool
             return pgpool
 
-insertBlock :: Pool SqlBackend -> Block -> IO (Key Block)
-insertBlock p b = runSqlPersistMPool (insert b) p
+insertBlock :: Block -> AppM (Key Block)
+insertBlock b = runDB (insert b)
 
-insertBlocks :: Pool SqlBackend -> [Block] -> IO [Key Block]
-insertBlocks p bs = runSqlPersistMPool (mapM insert bs) p
+insertBlocks :: [Block] -> AppM [Key Block]
+insertBlocks bs = runDB $ (mapM insert bs)
 
 highestBlock :: AppM Int
 highestBlock = do
