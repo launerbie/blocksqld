@@ -33,36 +33,44 @@ getbestblockhash :: AppM BlockHash
 getbestblockhash = do
   let req = RpcRequest "getbestblockhash" [] ""
   rpcresp <- responseFromRpcRequest req
-  let mString = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mString
+  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
 
 getblockcount :: AppM Int
 getblockcount = do
   let req = RpcRequest "getblockcount" [] ""
   rpcresp <- responseFromRpcRequest req
-  let mInt = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mInt
+  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
 
 getblockhash :: Int -> AppM String
 getblockhash i = do
   let req = RpcRequest "getblockhash" [toJSON i] ""
   rpcresp <- responseFromRpcRequest req
-  let mString = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mString
+  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
 
 getblockheader :: String -> AppM Blockheader
 getblockheader hash = do
   let req = RpcRequest "getblockheader" [toJSON hash] ""
   rpcresp  <- responseFromRpcRequest req
-  let mBh = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mBh
+  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
 
 getblock :: String -> AppM Block
 getblock hash = do
   let req = RpcRequest "getblock" [toJSON hash] ""
   rpcresp  <- responseFromRpcRequest req
-  let mBlock = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mBlock
+  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+
+getrawtransaction :: TxHash -> AppM RawTx
+getrawtransaction txid = do
+  let req = RpcRequest "getrawtransaction" [toJSON txid] ""
+  rpcresp  <- responseFromRpcRequest req
+  hoistEither $ parseEither parseJSON (rpcResult rpcresp)
+
+decoderawtransansaction :: RawTx -> AppM Tx
+decoderawtransansaction rawtx = do
+  let req = RpcRequest "decoderawtransansaction" [toJSON rawtx] ""
+  rpcresp  <- responseFromRpcRequest req
+  let mRawTx = parseEither parseJSON (rpcResult rpcresp)
+  hoistEither mRawTx
 
 getblockWithHeight :: Int -> AppM Block
 getblockWithHeight = getblockhash >=> getblock
@@ -72,20 +80,6 @@ getTXidsFromBlockWithHeight = getblockhash >=> getblock >=> getTXidsFromBlock
 
 getTXidsFromBlock :: Block -> AppM [TxHash]
 getTXidsFromBlock b = return (blockTx b)
-
-getrawtransaction :: TxHash -> AppM RawTx
-getrawtransaction txid = do
-  let req = RpcRequest "getrawtransaction" [toJSON txid] ""
-  rpcresp  <- responseFromRpcRequest req
-  let mRawTx = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mRawTx
-
-decoderawtransansaction :: RawTx -> AppM Tx
-decoderawtransansaction rawtx = do
-  let req = RpcRequest "decoderawtransansaction" [toJSON rawtx] ""
-  rpcresp  <- responseFromRpcRequest req
-  let mTx = parseEither parseJSON (rpcResult rpcresp)
-  hoistEither mTx
 
 decoderaws :: [TxHash] -> AppM [Tx]
 decoderaws txs = mapM (getrawtransaction >=> decoderawtransansaction) txs
