@@ -22,6 +22,7 @@ import Text.Pretty.Simple (pPrint)
 
 import Blocksqld.Types
 import Blocksqld.Database
+import Blocksqld.Genesis
 
 type AuthHeader  = Header
 type TxHash      = String
@@ -52,8 +53,13 @@ getblock h = getDecodedResponse req
   where req = RpcRequest "getblock" [toJSON h] "5"
 
 getrawtransaction :: TxHash -> AppM RawTx
-getrawtransaction txid = getDecodedResponse req
-  where req = RpcRequest "getrawtransaction" [toJSON txid] "6"
+getrawtransaction txid = 
+  -- Genesis coinbase tx needs special treatment.
+  if txid == dashtxidgenesis 
+  then return dashrawgenesis
+  else do
+    getDecodedResponse req
+    where req = RpcRequest "getrawtransaction" [toJSON txid] "6"
 
 decoderawtransaction :: RawTx -> AppM Tx
 decoderawtransaction rawtx = getDecodedResponse req

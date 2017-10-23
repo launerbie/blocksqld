@@ -50,6 +50,7 @@ executable blocksqld
   other-modules:     Blocksqld.Commands
                      Blocksqld.Database
                      Blocksqld.Types
+                     Blocksqld.Genesis
 
   default-language:    Haskell2010
 

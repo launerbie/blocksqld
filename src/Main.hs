@@ -65,8 +65,6 @@ syncDB = do
         forM_ intss $ \ints -> do
            blocks <- mapM getblockWithHeight ints
            txidss <- mapM getTXidsFromBlockWithHeight ints
-           --apparently getrawtransaction will give 'no information'
-           --on the genesis transaction.
            rawtxs <- mapM getrawtransaction (concat txidss)
            txs    <- mapM decoderawtransaction rawtxs
            insertBlocks blocks
