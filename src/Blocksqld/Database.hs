@@ -45,6 +45,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     difficulty Double
     chainwork  T.Text
     --previousblockhash T.Text Maybe
+    -- Genesis block has no previous block
     deriving Show
   Tx
     txid     T.Text
@@ -54,10 +55,18 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     --vin      T.Text
     --vout     T.Text
     deriving Show
-  BlockTest
-    hash       T.Text
-    size       Int
-    txs        [String]
+  Transaction 
+    blockId     BlockId
+    index       Int
+    txid        T.Text
+    size        Int
+    inputCount  Int
+    outputCount Int
+    inputsBTC   Double
+    outputsBTC  Double
+    feeBTC      Double
+    version     Int
+    locktime    Int
     deriving Show
   BlockHeader
     hash       T.Text
