@@ -45,7 +45,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     difficulty Double
     chainwork  T.Text
     --previousblockhash T.Text Maybe
-    -- Genesis block has no previous block
+    -- Genesis block has no previous block.
     deriving Show
   Tx
     txid     T.Text

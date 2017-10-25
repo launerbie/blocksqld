@@ -40,7 +40,7 @@ getblockcount :: AppM Int
 getblockcount = getDecodedResponse req
   where req = RpcRequest "getblockcount" [] "2"
 
-getblockhash :: Int -> AppM String
+getblockhash :: Int -> AppM BlockHash
 getblockhash i = getDecodedResponse req
   where req =  RpcRequest "getblockhash" [toJSON i] "3"
 
