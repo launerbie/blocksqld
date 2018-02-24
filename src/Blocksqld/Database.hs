@@ -62,12 +62,33 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     size        Int
     inputCount  Int
     outputCount Int
-    inputsBTC   Double
-    outputsBTC  Double
-    feeBTC      Double
+    inputsBtc   Double
+    outputsBtc  Double
+    feeBtc      Double
     version     Int
     locktime    Int
     deriving Show
+  TransactionInput
+    transactionId       TransactionId
+    index               Int
+    size                Int
+    scriptId            Int
+    outpointTxid        Int
+    outpointInd         Double
+    transactionOutputId TransactionOutputId
+    value               Int
+    sequence            Int
+    deriving Show
+  TransactionOutput
+    transactionId       TransactionId
+    index               Int
+    toAddressType       Int
+    toAddress           T.Text
+    value               Int
+--    scriptId            ScriptId
+--    deriving Show
+--  Script
+--    deriving Show
   BlockHeader
     hash       T.Text
     size       Int
